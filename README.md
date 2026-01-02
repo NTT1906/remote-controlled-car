@@ -17,17 +17,17 @@ Wifi is compulsory to control the car and the range is not limited, you can stil
 Download
 ========
 
-The source code can be cloned from this Github repository.
+1. The source code can be cloned from this Github repository.
 ```bash
 git clone https://github.com/minhi1/remote-controlled-car.git
 ```
 
-Then, in the directory that contains `package.json` file, run this command to install required packages.
+2. Then, in the directory that contains `package.json` file, run this command to install required packages.
 ```bash
 npm install
 ```
 
-Create own database that obeys the following format.
+3. Create own database that obeys the following format.
 ```sql
 CREATE TABLE users (
     id UUID PRIMARY KEY,
@@ -50,7 +50,7 @@ CREATE TABLE img_storage (
 );
 ```
 
-Prepare the `.env` file with own database information and secret key. For example.
+4. Prepare the `.env` file with own database information and secret key. For example.
 ```env
 DB_Host = {server_host}
 DB_Port = {server_port}
@@ -61,7 +61,7 @@ SECRET_KEY = {secret_key}
 PORT = {app_port}
 ```
 
-Run the localhost server.
+5. Run the localhost server.
 ```bash
 npm run dev
 ```
