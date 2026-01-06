@@ -8,7 +8,10 @@ const userAuth = require('./auth/user_auth');
 const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT || 8080;
 const crypto = require('crypto');
-const mailer = require('./service/mailer');
+const multer = require('multer');
+const fs = require('fs');
+const FormData = require('form-data');
+const axios = require('axios');
 
 const app = express();
 
@@ -18,6 +21,11 @@ const secretKey = process.env.SECRET_KEY;
 function responseError(res, status_code = 500, msg = 'Internal Server Error') {
   res.status(status_code).send(msg);
 }
+
+// Upload config
+const upload = multer({
+  dest: "./tmp-uploads/",
+});
 
 // Set EJS as template engine
 app.set('view engine', 'ejs');
@@ -59,19 +67,50 @@ app.get(['/car', '/car.html'], userAuth.requireAuthentication, (req, res) => {
   res.render('car');
 });
 
+app.post('/analyze-image', upload.single('image'), async (req, res) => {
+  const filePath = req.file.path;
+
+  console.log("File path is", filePath);
+
+  // Create form data to send request to API
+  const fd = new FormData();
+  fd.append('image', fs.createReadStream(filePath));
+
+  // Imagga URLs and API options
+  const url = 'https://api.imagga.com';
+  const APIs = {
+    "img-tag": "/v2/tags", 
+    // image - file (multipart/form-data)
+    "category": "/v2/categorizers/general_v3",
+    // categorizer_id - string (required)
+    // image - file (Binary image file via multipart/form-data)
+    "face-detect": "/v2/faces/detections",
+    // image - file (Binary image file via multipart/form-data)
+    // return_face_id - boolean (generate face_id for each detected face)
+    "text-recog": "/v2/text",
+    // image - file (Image file contents to perform optical character recognition)
+  };
+
+  const apiOption = APIs['img-tag'];
+
+  console.log("Sending image to Imagga...");
+ 
+  const headers = {
+    'Authorization': process.env.IMAGGA_HEADER,
+    ...fd.getHeaders() // For multipart/form-data requirement
+  }
+
+  try {
+    const resp = await axios.post(`${url}${apiOption}`, fd, { headers });
+    res.send(resp.data);
+  } catch (error) {
+    console.error('Error uploading image:', error.response ? error.response.data : error.message);
+  }
+});
+
 app.get(['/login', '/login.html'], userAuth.requireNoAuthentication, (req, res) => {
   const msg = req.query.msg || '';
   res.render('login', { msg });
-});
-
-app.get(['/signup', '/signup.html'], userAuth.requireNoAuthentication, (req, res) => {
-  const msg = req.query.msg || '';
-  res.render('signup', { msg });
-});
-
-app.get('/logout', (req, res) => {
-  res.clearCookie('token');
-  res.redirect('/');
 });
 
 app.post('/login', userAuth.requireNoAuthentication, async (req, res) => {
@@ -103,6 +142,11 @@ app.post('/login', userAuth.requireNoAuthentication, async (req, res) => {
   const payload = {'sub': user['id'], username: user['username'], email: user['email']};
   res.cookie('token', userAuth.generateToken(payload), { httpOnly: true });
   res.redirect('/');
+});
+
+app.get(['/signup', '/signup.html'], userAuth.requireNoAuthentication, (req, res) => {
+  const msg = req.query.msg || '';
+  res.render('signup', { msg });
 });
 
 app.post('/signup', userAuth.requireNoAuthentication, async (req, res) => {
@@ -149,6 +193,12 @@ app.post('/signup', userAuth.requireNoAuthentication, async (req, res) => {
   // Successfully creating new account
   res.redirect('/login');
 });
+
+app.get('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.redirect('/');
+});
+
 
 // Create HTTP server from Express app
 const server = http.createServer(app);

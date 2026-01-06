@@ -28,8 +28,7 @@ async function sendMail({ to, subject, text, html }) {
       text: 'Hiluu from mi1',
       html: (Optional)
   });
-
-   */
+  */
 
   return transporter.sendMail(mailOptions);
 }
