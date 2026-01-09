@@ -8,12 +8,12 @@ async function requestImagga(imageInput) {
   const url = 'https://api.imagga.com';
   const APIs = {
     "img-tag": "/v2/tags",
-    "category": "/v2/categorizers/general_v3",
+    "category": "/v2/categories/general_v3",
     "face-detect": "/v2/faces/detections",
     "text-recog": "/v2/text",
   };
   
-  const apiOption = APIs['category']; 
+  const apiOption = APIs['img-tag'];
   
   // Basic headers (Authorization only)
   const baseHeaders = {

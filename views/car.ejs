@@ -37,10 +37,10 @@
 
           <button class="capture-btn" onclick="captureFrame()">Capture (C)</button>
 
-          <div class="upload-wrapper">
+          <!-- <div class="upload-wrapper">
             <input type="file" id="file-input" style="display: none;">
             <button id="uploadButton" class="upload-btn">📂 Upload to AI</button>
-          </div>
+          </div> -->
         </div>
 
         <div class="camera-wrapper">
@@ -150,11 +150,14 @@
       if (!currentOpenedImage) return;
 
       const btn = document.getElementById('btnAnalyze');
+      const resultBox = document.getElementById('analysisResult');
       const originalText = btn.innerText;
       
       // 1. Show loading state
       btn.innerText = "⏳ Analyzing...";
       btn.disabled = true;
+      resultBox.style.display = 'none';
+      resultBox.innerHTML = '';
 
       try {
         // 2. Send to Backend as JSON
@@ -169,10 +172,36 @@
         const data = await response.json();
         console.log("Analysis Result:", data);
 
-        // 3. Display Result (Simple alert for now, or log to your Activity Log)
-        // alert("Analysis Complete! Check Console for details.\n\nTop Tag: " + 
-        //       (data.result?.tags?.[0]?.tag?.en || "No tags found"));
-        
+        // 3. Display Result
+        if (data.result && data.result.tags) {
+          // Take top 5 tags
+          const tags = data.result.tags.slice(0, 5);
+
+          tags.forEach(item => {
+            const name = item.tag.en;
+            const confidence = item.confidence.toFixed(1); // e.g., 95.5
+
+            // Create HTML for this row
+            const row = document.createElement('div');
+            row.className = 'tag-row';
+            row.innerHTML = `
+              <span class="tag-name">${name}</span>
+              <div class="tag-bar-bg">
+                <div class="tag-bar-fill" style="width: ${confidence}%"></div>
+              </div>
+              <span class="tag-score">${confidence}%</span>
+            `;
+            resultBox.appendChild(row);
+          });
+
+          // Show the box
+          resultBox.style.display = 'block';
+          
+        } else {
+          resultBox.innerText = "No objects detected.";
+          resultBox.style.display = 'block';
+        }               
+
         addLog("Analysis received", "success");
 
       } catch (error) {
@@ -240,60 +269,6 @@
     function getWsUrl(path) {
       return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${path}`;
     }
-
-    // --- 1. Upload Image to /analyze-image ---
-    uploadButton.addEventListener('click', () => {
-      fileInput.click();
-    });
-
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        addLog(`Selected file: ${file.name}`, 'info');
-
-        if (!file.type.startsWith('image/')) {
-          alert('Please select a valid image!');
-          return;
-        }
-
-        const formData = new FormData();
-        formData.append('image', file);
-
-        addLog('Hosting image to ImgBB...');
-        fetch('/host-image', {
-          method: 'POST',
-          body: formData
-        })
-        .then(resp => {
-          return resp.json();
-        })
-        .then(data => {
-          console.log("ImgBB response!!!");
-          console.log(data);
-          console.log("Get Image URL:", data.url);
-          // TODO: Add ImgBB response (view url) to log
-        });
-
-        // addLog('Sending to AI...', 'info');
-
-        // fetch('http://localhost:8081/analyze-image', {
-        //   method: 'POST',
-        //   body: formData
-        // })
-        // .then(resp => {
-        //   if (!resp.ok) throw new Error('Error receiving AI response');
-        //   return resp.json();
-        // })
-        // .then(data => {
-        //   console.log(data);
-        //   addLog(`AI Response: ${JSON.stringify(data)}`, 'success');
-        // })
-        // .catch(err => {
-        //   console.error(err);
-        //   addLog(`AI Error: ${err.message}`, 'error');
-        // });
-      }
-    });
 
     // --- 2. Car Control ---
     function setActive(cmd) {
@@ -409,17 +384,6 @@
 
       addImageToGallery(img);
       addLog('Frame captured', 'success'); 
-
-      // const item = document.createElement('div');
-      // item.className = 'gallery-item';
-      // item.appendChild(img);
-
-      // const tags = document.createElement('div');
-      // tags.className = 'tags';
-      // tags.innerText = 'Captured Frame';
-      // item.appendChild(tags);
-
-      // document.getElementById('galleryGrid').prepend(item);
     }
 
     function toggleGallery() {
@@ -757,8 +721,10 @@
       <button id="btnAnalyze" class="analyze-btn" onclick="analyzeCurrentImage()">
         🔍 Analyze Image
       </button>
+
+      <div id="analysisResult" class="analysis-result"></div>
     </div>   
     <!-- <img class="modal-content" id="fullImage"> -->
-    </div>
+  </div>
 </body>
 </html>
