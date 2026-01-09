@@ -62,6 +62,10 @@ app.get(["/", "/index.html", "/index"], (req, res) => {
   res.render("index", { isLoggedIn, username });
 });
 
+app.get(['/guide', '/guide.html'], (req, res) => {
+  res.render("user-guide");
+});
+
 app.get(["/car", "/car.html"], userAuth.requireAuthentication, (req, res) => {
   // res.sendFile(path.join(__dirname, 'car.html'));
   res.render("car");
@@ -208,28 +212,6 @@ app.post(
     }
   },
 );
-
-// app.post('/analyze-image', userAuth.requireAuthentication, upload.single('image'), async (req, res) => {
-//   const filePath = req.file.path;
-
-//   if (!filePath) {
-//     responseError(res, 400, 'File path to Imagga empty');
-//     return;
-//   }
-
-//   console.log("File path to Imagga is", filePath);
-
-//   var imaggaResp = await imagga.requestImagga(filePath);
-
-//   if (typeof(imaggaResp) === 'string') {
-//     if (imaggaResp.includes('Error')) {
-//       responseError(res, 500, imaggaResp);
-//     }
-//     return;
-//   }
-
-//   if (imaggaResp) res.send(imaggaResp);
-// });
 
 app.get("/get-images", userAuth.requireAuthentication, async (req, res) => {
   const decoded = jwt.verify(req.cookies.token, secretKey);

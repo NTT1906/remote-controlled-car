@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>User Guide - Remote Control Car</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Extra styles specific to the Guide page */
+  .guide-container {
+    max-width: 800px;
+    width: 100%;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .guide-title {
+    text-align: center;
+    color: #4CAF50;
+    margin-bottom: 10px;
+    font-size: 2rem;
+  }
+
+  .guide-card {
+    background: #222;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  }
+
+  .guide-card h3 {
+    color: #2196F3;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+  }
+
+  .guide-card ul {
+    list-style-type: none;
+    padding-left: 5px;
+  }
+
+  .guide-card li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  .key-badge {
+    display: inline-block;
+    background: #444;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    border: 1px solid #666;
+    font-size: 0.9rem;
+  }
+
+  .btn-example {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: white;
+    vertical-align: middle;
+  }
+  
+  .back-link {
+    display: block;
+    width: fit-content;
+    margin: 20px auto 0;
+    color: #aaa;
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 10px 20px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    transition: 0.3s;
+  }
+  
+  .back-link:hover {
+    background: #333;
+    color: #fff;
+    border-color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h2>Remote Control Car</h2>
+  <div class="status-bar">
+    <span>📖 User Guide</span>
+  </div>
+</header>
+
+<main>
+  <div class="guide-container">
+    <h1 class="guide-title">How to Use</h1>
+
+    <div class="guide-card">
+      <h3>1. Driving Controls</h3>
+      <p>You can control the car using either the on-screen buttons or your keyboard.</p>
+      <br>
+      <ul>
+        <li><span class="key-badge">W</span> or <span class="key-badge">↑</span> : Move Forward</li>
+        <li><span class="key-badge">S</span> or <span class="key-badge">↓</span> : Move Backward</li>
+        <li><span class="key-badge">A</span> or <span class="key-badge">←</span> : Turn Left</li>
+        <li><span class="key-badge">D</span> or <span class="key-badge">→</span> : Turn Right</li>
+        <li><em>Combine keys (e.g., W+A) to move diagonally.</em></li>
+      </ul>
+    </div>
+
+    <div class="guide-card">
+      <h3>2. Camera & Capture</h3>
+      <ul>
+        <li>
+          <strong>Take a Photo:</strong> Press the <span class="key-badge">C</span> key on your keyboard OR click the <span class="btn-example" style="background:#2196F3">Capture (C)</span> button.
+        </li>
+        <li>
+          The captured image will automatically be saved to the server and appear in the image gallery (instructed below).
+        </li>
+      </ul>
+    </div>
+
+    <div class="guide-card">
+      <h3>3. Gallery & AI Analysis</h3>
+      <ul>
+        <li>
+          <strong>View Gallery:</strong> Click the <span class="btn-example" style="background:#9C27B0">📁 Gallery</span> button to open the image drawer.
+        </li>
+        <li>
+          <strong>Inspect Image:</strong> Click on any thumbnail in the gallery to view it full-screen.
+        </li>
+        <li>
+          <strong>Analyze Image:</strong> While viewing an image full-screen, click the <span class="btn-example" style="background:#ff9800">🔍 Analyze Image</span> button. The AI will scan the photo and list detected objects (e.g., "Car: 98%").
+        </li>
+      </ul>
+    </div>
+    
+    <a href="/" class="back-link">← Back to Home</a>
+  </div>
+</main>
+
+</body>
+</html>
