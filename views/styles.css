@@ -333,3 +333,79 @@ button.active {
   .activity-log h3 { font-size: 14px; }
   #logContainer { font-size: 10px; max-height: 150px; }
 }
+
+/* --- MODAL (Lightbox) STYLES --- */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 10000; /* Sit on top of everything (Gallery is 9999) */
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: rgba(0,0,0,0.95); /* Black w/ opacity */
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modal Content (The Image) */
+.modal-content {
+  margin: auto;
+  display: block;
+  max-width: 90%;
+  max-height: 90vh;
+  object-fit: contain;
+  border: 2px solid white;
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(255,255,255,0.2);
+}
+
+/* The Close Button */
+.close-btn {
+  position: absolute;
+  top: 20px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  z-index: 10001;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+  color: #bbb;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Optional Animation */
+.modal-content {
+  animation-name: zoom;
+  animation-duration: 0.3s;
+}
+
+@keyframes zoom {
+  from {transform:scale(0)}
+  to {transform:scale(1)}
+}
+
+/* Style for the Analyze Button inside Modal */
+.analyze-btn {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #ff9800; /* Orange color */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 10002; /* Ensure it is clickable */
+  position: relative;
+}
+
+.analyze-btn:hover {
+  background-color: #e68900;
+}

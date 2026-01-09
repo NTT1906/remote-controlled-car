@@ -19,7 +19,7 @@
   <main>
     <div class="main-container">
       <div class="center-column">
-        
+
         <div class="controls-wrapper">
           <div class="controls">
             <button data-cmd="4">↖</button>
@@ -36,7 +36,7 @@
           </div>
 
           <button class="capture-btn" onclick="captureFrame()">Capture (C)</button>
-          
+
           <div class="upload-wrapper">
             <input type="file" id="file-input" style="display: none;">
             <button id="uploadButton" class="upload-btn">📂 Upload to AI</button>
@@ -70,10 +70,138 @@
   </div>
 
   <script>
+    function addImageToGallery(img) {
+      const item = document.createElement('div');
+      item.className = 'gallery-item';
+      item.appendChild(img);
+
+      const tags = document.createElement('div');
+      tags.className = 'tags';
+      tags.innerText = 'Captured Frame';
+      item.appendChild(tags);
+
+      document.getElementById('galleryGrid').prepend(item);
+    }
+    
+    // --- Load Gallery From Database
+    async function loadGalleryFromDB() {
+      console.log("Loading gallery from database...");
+      const response = await fetch('/get-images');
+      if (!response) {
+        return null;
+      }
+
+      console.log(response);
+
+      var images = null;
+
+      try {
+        images = await response.json();
+      } catch (error) {
+        console.log("Error decode json images:", error);
+        return;
+      }
+
+      if (!images) {
+        console.log("Error: Image is NULL");
+        return;
+      }
+
+      console.log("Images:", images);
+
+      if (!Array.isArray(images)) {
+        console.log("images is not array data type");
+        return;
+      }
+
+      images.forEach(element => {  
+        const img = new Image();
+
+        img.src = element.url;
+        img.style.width = '100px';
+
+        // Add event listener for when image is clicked
+        img.style.cursor = 'pointer';
+
+        img.onclick = function() {
+                console.log("Click on image...");
+          openModal(element.url);
+        };
+        addImageToGallery(img);
+      });
+    }
+    
+    // --- Modal Logic ---
+    let currentOpenedImage = null;
+
+    function openModal(imageSrc) {
+      const modal = document.getElementById("imageModal");
+      const modalImg = document.getElementById("fullImage");
+      console.log("Opening image...");
+
+      modal.style.display = "flex"; // Show the modal
+      modalImg.src = imageSrc;      // Set the image source
+    
+      // Set current opened image
+      currentOpenedImage = imageSrc;
+    }
+
+    async function analyzeCurrentImage() {
+      if (!currentOpenedImage) return;
+
+      const btn = document.getElementById('btnAnalyze');
+      const originalText = btn.innerText;
+      
+      // 1. Show loading state
+      btn.innerText = "⏳ Analyzing...";
+      btn.disabled = true;
+
+      try {
+        // 2. Send to Backend as JSON
+        const response = await fetch('/analyze-image', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json' // Important for Base64
+          },
+          body: JSON.stringify({ image: currentOpenedImage })
+        });
+
+        const data = await response.json();
+        console.log("Analysis Result:", data);
+
+        // 3. Display Result (Simple alert for now, or log to your Activity Log)
+        // alert("Analysis Complete! Check Console for details.\n\nTop Tag: " + 
+        //       (data.result?.tags?.[0]?.tag?.en || "No tags found"));
+        
+        addLog("Analysis received", "success");
+
+      } catch (error) {
+        console.error("Analysis failed:", error);
+        alert("Analysis failed. Check console.");
+      } finally {
+        // 4. Reset Button
+        btn.innerText = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    function closeModal() {
+      document.getElementById("imageModal").style.display = "none";
+    }
+
+    // Optional: Close modal if user clicks on the black background (outside image)
+    function closeModalOnBg(event) {
+      if (event.target.id === "imageModal") {
+        closeModal();
+      }
+    }
+
+    loadGalleryFromDB();
+
     // --- CONFIGURATION ---
     const STOP_CMD = 1;
     const TARGETSR = 16000;
-    const FRAMEMS = 20; 
+    const FRAMEMS = 20;
     const BYTESPERSAMPLE = 2; // PCM16
     const SAMPLESPERFRAME = TARGETSR * FRAMEMS / 1000; // 320
     const BYTESPERFRAME = SAMPLESPERFRAME * BYTESPERSAMPLE; // 640
@@ -85,8 +213,8 @@
     const camStatusEl = document.getElementById('camStatus');
     const buttons = document.querySelectorAll('[data-cmd]');
     const logContainer = document.getElementById('logContainer');
-    
-    // Upload Elements 
+
+    // Upload Elements
     const uploadButton = document.getElementById('uploadButton');
     const fileInput = document.getElementById('file-input');
 
@@ -132,7 +260,7 @@
         formData.append('image', file);
 
         addLog('Hosting image to ImgBB...');
-        fetch('http://localhost:8081/host-image', {
+        fetch('/host-image', {
           method: 'POST',
           body: formData
         })
@@ -223,17 +351,75 @@
 
     // --- 3. Camera capture and Gallery ---
     function captureFrame() {
-      if (!videoEl.src) return;
+      if (!videoEl.src) {
+        console.log("Video has no source!!!");
+        return;
+      }
+
+      console.log("Video source:");
+      console.log(videoEl.src);
+
+      // Create a temporary canvas to draw the current frame
+      const canvas = document.createElement('canvas');
+
+      // Use naturalWidth to get the real resolution of the camera
+      // not the CSS size
+      canvas.width = videoEl.naturalWidth;
+      canvas.height = videoEl.naturalHeight;
+
+      const ctx = canvas.getContext('2d');
+
+      // 3. Draw the current state of the video element onto the canvas
+      // This extracts the PIXELS, ignoring the dead Blob URL
+      ctx.drawImage(videoEl, 0, 0);
+
+      // 4. Convert the canvas content to a base64 Data URL (a static image string)
+      const dataURL = canvas.toDataURL('image/jpeg');
+
+      fetch('/host-image-b64', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        // Send the dataURL as a JSON object
+        body: JSON.stringify({ image: dataURL })       
+      })
+      .then(resp => {
+        console.log("Response from ImgBB:", resp);
+        return resp; 
+      })
+      .catch(err => {
+        console.error('Error uploading img to imgBB', err);
+        addLog('Failed hosting image', 'error');
+      });
+
       const img = new Image();
-      img.src = videoEl.src;
 
-      const item = document.createElement('div');
-      item.className = 'gallery-item';
-      item.appendChild(img);
-      item.innerHTML += `<div class="tags">Captured Frame</div>`;
+      img.src = dataURL;
+      img.style.width = '100px';
 
-      addLog('Frame captured', 'success');
-      document.getElementById('galleryGrid').prepend(item);
+      // Add event listener for when image is clicked
+      img.style.cursor = 'pointer';
+
+      console.log("Create onclick() function for img");
+      img.onclick = function() {
+              console.log("Click on image...");
+        openModal(dataURL);
+      };
+
+      addImageToGallery(img);
+      addLog('Frame captured', 'success'); 
+
+      // const item = document.createElement('div');
+      // item.className = 'gallery-item';
+      // item.appendChild(img);
+
+      // const tags = document.createElement('div');
+      // tags.className = 'tags';
+      // tags.innerText = 'Captured Frame';
+      // item.appendChild(tags);
+
+      // document.getElementById('galleryGrid').prepend(item);
     }
 
     function toggleGallery() {
@@ -247,7 +433,7 @@
     updateCamStatus();
 
     // --- 4. Audio ---
-    
+
     // >> Speaker RX (ESP32 -> Browser)
     let spkRxOn = false;
     let listenEnabled = false;
@@ -370,7 +556,7 @@
         while (micQueuedBytes > MAXQUEUEBYTES && micQueue.length) {
           micQueuedBytes -= micQueue[0].length;
           micQueue.shift();
-          started = false; 
+          started = false;
         }
         if (listenEnabled) await startPump();
       };
@@ -428,7 +614,7 @@
       const src = talkCtx.createMediaStreamSource(talkStream);
       const bufSize = 1024;
       talkNode = talkCtx.createScriptProcessor(bufSize, 1, 1);
-      
+
       talkZeroGain = talkCtx.createGain();
       talkZeroGain.gain.value = 0;
 
@@ -546,9 +732,15 @@
 
     wsCam.onmessage = (e) => {
       if (e.data instanceof ArrayBuffer) {
-        const url = URL.createObjectURL(new Blob([e.data], { type: 'image/jpeg' }));
-        videoEl.src = url;
-        videoEl.onload = () => URL.revokeObjectURL(url);
+        const blob = new Blob([e.data], { type: 'image/jpeg' });
+        const reader = new FileReader();
+        reader.onload = () => {
+          videoEl.src = reader.result;
+        };
+        reader.readAsDataURL(blob);
+        // const url = URL.createObjectURL(new Blob([e.data], { type: 'image/jpeg' }));
+        // videoEl.src = url;
+        // videoEl.onload = () => URL.revokeObjectURL(url);
       } else if (e.data === 'ping') {
         lastPing = Math.round(performance.now() - pingStart);
       }
@@ -556,5 +748,17 @@
 
     addLog('System Initialized', 'success');
   </script>
+
+  <div id="imageModal" class="modal" onclick="closeModalOnBg(event)">
+    <span class="close-btn" onclick="closeModal()">&times;</span>
+    <div style="position: relative; text-align: center;">
+      <img class="modal-content" id="fullImage">
+      
+      <button id="btnAnalyze" class="analyze-btn" onclick="analyzeCurrentImage()">
+        🔍 Analyze Image
+      </button>
+    </div>   
+    <!-- <img class="modal-content" id="fullImage"> -->
+    </div>
 </body>
 </html>

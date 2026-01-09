@@ -66,7 +66,58 @@ app.get(['/car', '/car.html'], userAuth.requireAuthentication, (req, res) => {
   res.render('car');
 });
 
-app.post('/host-image', upload.single('image'), async (req, res) => {
+app.post('/host-image-b64', userAuth.requireAuthentication, async (req, res) => {
+  try {
+    const { image } = req.body; // Get the image base64 data
+    
+    if (!image) {
+      responseError(res, 400, 'Image data NULL');
+      return;
+    }
+
+    // 1. Upload to ImgBB
+    const imgBBResponse = await imgbb.hostImageBase64(image);
+    
+    if (typeof(imgBBResponse) === 'string') {
+      if (imgBBResponse.includes('Error')) {
+        responseError(res, 500, imgBBResponse);
+        return;
+      }
+      return;
+    }
+
+    console.log('imgbb response:', imgBBResponse);
+    console.log('imgbb data', imgBBResponse.data);
+
+    if (imgBBResponse.data && imgBBResponse.data.url) {
+      console.log("Parsing ImgBB data");
+      const publicURL = imgBBResponse.data.url;
+      const decoded = jwt.verify(req.cookies.token, secretKey);
+      const userId = decoded.sub;
+      console.log("public url:", publicURL);
+      console.log("userId:",userId);
+      const response = await query.addUserImage(userId, publicURL, `image-name.jpeg`);
+      console.log("response:",response);
+      if (typeof(response) === 'string') {
+        if (response.includes('Error')) {
+          responseError(res, 500, response);
+          return;
+        }
+      }
+      console.log("Successfully hosting image to ImgBB");
+      res.send(imgBBResponse.data);
+    } else {
+      console.log("Fail to host image to imgBB");
+      responseError(res, 500, 'Fail ImgBB Request');
+      return;
+    } 
+  } catch (error) {
+    console.log("Error: uploading failed @@", error);
+    res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+app.post('/host-image', userAuth.requireAuthentication, upload.single('image'), async (req, res) => {
   const filePath = req.file.path;
 
   if (!filePath) {
@@ -92,26 +143,86 @@ app.post('/host-image', upload.single('image'), async (req, res) => {
   } 
 });
 
-app.post('/analyze-image', upload.single('image'), async (req, res) => {
-  const filePath = req.file.path;
+app.post('/analyze-image', userAuth.requireAuthentication, upload.single('image'), async (req, res) => {
+  let imageInput = null;
 
-  if (!filePath) {
-    responseError(res, 400, 'File path to Imagga empty');
-    return;
+  // 1. CHECK: Is it a Base64 string? (Sent as JSON body)
+  if (req.body && req.body.image) {
+    const type = req.body.image.startsWith('http') ? 'URL' : 'Base64';
+    console.log(`Received ${type} Image for analysis`);
+    imageInput = req.body.image;
+  } 
+  // 2. CHECK: Is it a File Upload? (Sent as Multipart/Multer)
+  else if (req.file && req.file.path) {
+    console.log("Received File Path for analysis:", req.file.path);
+    imageInput = req.file.path;
   }
 
-  console.log("File path to Imagga is", filePath);
+  // 3. Validation
+  if (!imageInput) {
+    return responseError(res, 400, 'No image data received (checked body and file)');
+  }
 
-  var imaggaResp = await imagga.requestImagga(filePath);
-  
-  if (typeof(imaggaResp) === 'string') {
-    if (imaggaResp.includes('Error')) {
-      responseError(res, 500, imaggaResp);
+  // 4. Call Imagga
+  // (Assuming you updated requestImagga to handle Base64 as shown in previous steps)
+  try {
+    console.log("image input:", imageInput);
+    var imaggaResp = await imagga.requestImagga(imageInput);
+
+    console.log("Imagga Response:", imaggaResp);
+
+    if (typeof(imaggaResp) === 'string' && imaggaResp.includes('Error')) {
+      return responseError(res, 500, imaggaResp);
     }
+
+    res.send(imaggaResp);
+  } catch (err) {
+    console.error(err);
+    responseError(res, 500, "Internal Server Error during Analysis");
+  }
+});
+
+// app.post('/analyze-image', userAuth.requireAuthentication, upload.single('image'), async (req, res) => {
+//   const filePath = req.file.path;
+
+//   if (!filePath) {
+//     responseError(res, 400, 'File path to Imagga empty');
+//     return;
+//   }
+
+//   console.log("File path to Imagga is", filePath);
+
+//   var imaggaResp = await imagga.requestImagga(filePath);
+  
+//   if (typeof(imaggaResp) === 'string') {
+//     if (imaggaResp.includes('Error')) {
+//       responseError(res, 500, imaggaResp);
+//     }
+//     return;
+//   }
+
+//   if (imaggaResp) res.send(imaggaResp);
+// });
+
+app.get('/get-images', userAuth.requireAuthentication, async (req, res) => {
+  const decoded = jwt.verify(req.cookies.token, secretKey);
+  console.log("User id when requesting image:", decoded);
+  const userId = decoded.sub;
+  console.log("user id:", userId);
+  if (!userId) {
+    responseError(res, 400, 'Invalid user id');
     return;
   }
+  
+  const images = await query.getUserImages(userId);
+  if (typeof(images) === 'string') {
+    if (images.includes('Error')) {
+      responseError(res); 
+      return;
+    }
+  }
 
-  if (imaggaResp) res.send(imaggaResp);
+  res.send(images);
 });
 
 app.get(['/login', '/login.html'], userAuth.requireNoAuthentication, (req, res) => {
@@ -127,8 +238,6 @@ app.post('/login', userAuth.requireNoAuthentication, async (req, res) => {
     responseError(res, 400, 'Username/Password is empty');
     return;
   }
-
-  // TODO: Verify username length
 
   const user = await query.getUserByUsername(username);
 

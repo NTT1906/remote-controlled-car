@@ -27,6 +27,30 @@ const axios = require('axios');
 const fs = require('fs');
 const FormData = require('form-data');
 
+async function hostImageBase64(base64String) {
+  // 1. Remove the "data:image/jpeg;base64," prefix
+  // ImgBB wants just the raw data
+  const cleanBase64 = base64String.replace(/^data:image\/\w+;base64,/, "");
+
+  const fd = new FormData();
+  fd.append('key', process.env.IMGBB_API_KEY);
+  // ImgBB automatically detects base64 if pass it in the 'image' field
+  fd.append('image', cleanBase64); 
+
+  try {
+    const response = await axios({
+      method: 'post',
+      url: 'https://api.imgbb.com/1/upload',
+      data: fd,
+      headers: fd.getHeaders() // Important for axios + form-data in Node
+    });
+    return response.data; // Return the ImgBB data object
+  } catch (error) {
+    console.error("ImgBB Error:", error.response ? error.response.data : error.message);
+    throw error;
+  }
+}
+
 async function hostImage(filePath) {
   const fd = new FormData();
   fd.append('key', process.env.IMGBB_API_KEY);
@@ -44,4 +68,4 @@ async function hostImage(filePath) {
   }
 }
 
-module.exports = { hostImage };
+module.exports = { hostImageBase64, hostImage };

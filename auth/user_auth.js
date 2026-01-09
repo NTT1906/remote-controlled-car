@@ -18,6 +18,7 @@ function verifyToken(token) {
   try {
     // Use the jwt.verify method with the token and the same secret key
     const decoded = jwt.verify(token, secretKey);
+    // console.log("Decoded JWT:", decoded);
     return true;
   } catch (err) {
     // Handle specific errors like expiration, invalid signature, etc.
